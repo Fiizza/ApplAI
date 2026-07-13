@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import create_engine
 from apscheduler.schedulers.background import BackgroundScheduler
 from googleapiclient.discovery import build as gmail_build
+from google.genai import errors as genai_errors
 
 import models, schemas, parser, matching, cover_letter, resume_tailor, auth
 import interview_prep, followup_email, learning_recommendations, notifications
@@ -106,11 +107,49 @@ def _cors_headers_for(request: Request) -> dict:
 #
 # The fix: catch the exception ourselves in a real middleware and attach the CORS header
 # directly on the response we build, instead of relying on CORSMiddleware to do it.
+def _gemini_quota_error(exc: Exception):
+    """If this is a Gemini "you've hit your API quota" error, return a clean
+    (status_code, detail, retry_after_seconds) tuple instead of leaking Google's raw
+    error blob to the frontend as an opaque 500. Returns None for anything else."""
+    if not isinstance(exc, genai_errors.APIError) or exc.code != 429:
+        return None
+
+    retry_after = None
+    try:
+        for d in exc.details.get("error", {}).get("details", []):
+            if d.get("@type", "").endswith("RetryInfo"):
+                retry_after = d.get("retryDelay")  # e.g. "54s"
+    except Exception:
+        pass
+
+    detail = (
+        "The AI service (Gemini) has hit its request quota, so this couldn't be "
+        "generated right now. " + (f"Retry in about {retry_after}. " if retry_after else "Retry shortly. ") +
+        "If this keeps happening, the Gemini API key's project has likely used up its free-tier "
+        "daily quota — check current limits/usage at https://ai.google.dev/gemini-api/docs/rate-limits "
+        "and https://ai.dev/rate-limit, or enable billing on the project for higher limits."
+    )
+    retry_seconds = None
+    if retry_after:
+        try:
+            retry_seconds = int(float(str(retry_after).rstrip("s")))
+        except ValueError:
+            pass
+    return 429, detail, retry_seconds
+
+
 @app.middleware("http")
 async def catch_unhandled_exceptions(request: Request, call_next):
     try:
         return await call_next(request)
     except Exception as exc:
+        quota_error = _gemini_quota_error(exc)
+        if quota_error:
+            status_code, detail, retry_seconds = quota_error
+            headers = _cors_headers_for(request)
+            if retry_seconds:
+                headers["Retry-After"] = str(retry_seconds)
+            return JSONResponse(status_code=status_code, content={"detail": detail}, headers=headers)
         return JSONResponse(
             status_code=500,
             content={"detail": f"{type(exc).__name__}: {exc}"},
