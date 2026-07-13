@@ -1,101 +1,219 @@
-# Job Application Tracker — Day 1
+# APPLAI: AI Career Copilot
 
-## Setup
+AI Career Copilot is an AI-powered job application assistant that helps users manage job applications, tailor resumes, generate cover letters, prepare for interviews, track recruiter emails, and receive intelligent reminders.
+
+## Features
+
+- User Authentication (JWT)
+- Job Application Tracking
+- AI Job Description Parsing
+- Resume Upload (PDF)
+- Resume Tailoring for ATS
+- AI Cover Letter Generation
+- Interview Preparation
+- Skill Gap Analysis
+- Learning Recommendations
+- Gmail Recruiter Email Integration
+- Daily Reminder Digests
+- Application Status Tracking
+
+---
+
+## Tech Stack
+
+### Frontend
+- React (Vite)
+- JavaScript
+- CSS
+
+### Backend
+- FastAPI
+- SQLAlchemy
+- SQLite
+- APScheduler
+
+### AI
+- Google Gemini API
+
+### Authentication
+- JWT
+- Google OAuth (Gmail)
+
+---
+
+## Project Structure
+
+```
+.
+├── app/                  # FastAPI Backend
+├── frontend/             # React Frontend
+├── requirements.txt
+├── Dockerfile
+├── README.md
+└── .gitignore
+```
+
+---
+
+## Installation
+
+### Clone Repository
+
 ```bash
-python3 -m venv venv
+git clone https://github.com/YOUR_USERNAME/YOUR_REPOSITORY.git
+cd YOUR_REPOSITORY
+```
+
+---
+
+## Backend Setup
+
+Create a virtual environment.
+
+```bash
+python -m venv venv
+```
+
+Activate it.
+
+Windows
+
+```bash
+venv\Scripts\activate
+```
+
+Linux/macOS
+
+```bash
 source venv/bin/activate
+```
+
+Install dependencies.
+
+```bash
 pip install -r requirements.txt
-cp .env.example .env    # then paste your ANTHROPIC_API_KEY into .env
+```
+
+Create a `.env` file in the project root.
+
+Example:
+
+```env
+GEMINI_API_KEY=YOUR_API_KEY
+
+GOOGLE_CLIENT_ID=YOUR_CLIENT_ID
+
+GOOGLE_CLIENT_SECRET=YOUR_CLIENT_SECRET
+
+GOOGLE_REDIRECT_URI=http://localhost:8000/auth/gmail/callback
+
+FRONTEND_URL=http://localhost:5173
+```
+
+Run the backend.
+
+```bash
 uvicorn app.main:app --reload
 ```
-The app reads `.env` automatically on startup — no need to export the key manually.
-Server runs at http://localhost:8000. Interactive docs at http://localhost:8000/docs.
 
-## Test it (real job postings)
+Backend:
 
-**1. Parse a job description (doesn't save it yet):**
-```bash
-curl -X POST http://localhost:8000/parse-job \
-  -H "Content-Type: application/json" \
-  -d '{"raw_text": "Paste a real job description here..."}'
 ```
-Or with a URL instead of raw_text: `{"job_url": "https://..."}`
-
-**2. Save it to the tracker** (use the parsed output as the body, filling in company/role):
-```bash
-curl -X POST http://localhost:8000/applications \
-  -H "Content-Type: application/json" \
-  -d '{
-    "company": "Acme Corp",
-    "role": "Backend Engineer",
-    "requirements": ["3+ years Python", "Docker experience"],
-    "key_skills": ["Python", "Docker", "PostgreSQL"],
-    "location": "Remote",
-    "employment_type": "Full-time",
-    "seniority": "Mid"
-  }'
+http://localhost:8000
 ```
 
-**3. List everything you're tracking:**
-```bash
-curl http://localhost:8000/applications
+Swagger Documentation:
+
+```
+http://localhost:8000/docs
 ```
 
-**4. Update status once you hear back:**
+---
+
+## Frontend Setup
+
+Navigate to the frontend folder.
+
 ```bash
-curl -X PATCH http://localhost:8000/applications/1 \
-  -H "Content-Type: application/json" \
-  -d '{"status": "Interview"}'
+cd frontend
 ```
 
-**5. Preview of Day 2's follow-up reminder** — apps still "Applied" after N days:
+Install packages.
+
 ```bash
-curl http://localhost:8000/applications/stale/7
+npm install
 ```
 
-**6. Seed your skill set** (this is what Day 2's match % will compare jobs against):
-```bash
-curl -X POST http://localhost:8000/skills/bulk \
-  -H "Content-Type: application/json" \
-  -d '[
-    {"name": "Python", "category": "Language", "proficiency": "Expert", "years_experience": 3},
-    {"name": "Docker", "category": "DevOps", "proficiency": "Intermediate", "years_experience": 1},
-    {"name": "FastAPI", "category": "Framework", "proficiency": "Intermediate"}
-  ]'
-```
-Or add one at a time via `POST /skills`. List them with `GET /skills`, edit with `PATCH /skills/{id}`.
+Create a `.env` file.
 
-## What's built (Day 1 + Day 2)
-
-**Day 1**
-- SQLite tables (`tracker.db`, auto-created on first run): `applications`, `skills`
-- `/parse-job`: pastes a URL or raw text → Gemini extracts company, role, requirements,
-  key skills, location, seniority, employment type as structured JSON
-- Full CRUD for the tracker (`/applications`) and your skill set (`/skills`, `/skills/bulk`)
-
-**Day 2**
-- `GET /applications/{id}/match` — compares the job's `key_skills` against your `skills`
-  table → `match_percentage`, `matched_skills`, `missing_skills` (the gaps)
-- `POST /applications/{id}/cover-letter` — drafts a tailored 2-3 sentence opener using
-  the job's requirements + your matched skills (no generic filler, grounded in real overlap)
-- Every application returned from `/applications` now includes `days_since_applied` and
-  `needs_followup` (true once a job is still "Applied" after 7+ days with no status change —
-  change `FOLLOWUP_THRESHOLD_DAYS` in `main.py` to adjust)
-
-### Test Day 2
-```bash
-# 1. Match a saved application against your skills
-curl http://localhost:8000/applications/1/match
-
-# 2. Generate a cover letter opener for it
-curl -X POST http://localhost:8000/applications/1/cover-letter
-
-# 3. See which applications need a follow-up right now
-curl http://localhost:8000/applications | python3 -m json.tool
-# look for "needs_followup": true
+```env
+VITE_API_URL=http://localhost:8000
 ```
 
-## What's next (Day 3)
-- React dashboard: kanban view (Applied → Interview → Offer/Rejected) with match score per job
-- Chat-style input: paste a job description, everything happens automatically end-to-end
-- Polish the gap explanation UI for the demo
+Run the frontend.
+
+```bash
+npm run dev
+```
+
+Frontend:
+
+```
+http://localhost:5173
+```
+
+---
+
+## Deployment
+
+### Frontend
+
+Deploy on **Vercel**.
+
+Environment Variable:
+
+```
+VITE_API_URL=https://YOUR_BACKEND_URL
+```
+
+---
+
+### Backend
+
+Deploy on **Hugging Face Spaces (Docker SDK)**.
+
+Required Environment Variables:
+
+```
+GEMINI_API_KEY
+
+GOOGLE_CLIENT_ID
+
+GOOGLE_CLIENT_SECRET
+
+GOOGLE_REDIRECT_URI
+
+FRONTEND_URL
+```
+
+The backend runs using:
+
+```bash
+uvicorn app.main:app --host 0.0.0.0 --port 7860
+```
+
+---
+
+## API Documentation
+
+After deployment:
+
+```
+https://YOUR_SPACE_NAME.hf.space/docs
+```
+
+---
+
+## License
+
+This project is intended for educational and portfolio purposes.
