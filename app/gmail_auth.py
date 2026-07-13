@@ -95,7 +95,7 @@ def exchange_code_for_tokens(code: str, code_verifier: str = None) -> dict:
     }
 
 
-def credentials_from_tokens(access_token: str, refresh_token: str) -> Credentials:
+def credentials_from_tokens(access_token: str, refresh_token: str, expiry=None) -> Credentials:
     return Credentials(
         token=access_token,
         refresh_token=refresh_token,
@@ -103,6 +103,7 @@ def credentials_from_tokens(access_token: str, refresh_token: str) -> Credential
         client_id=GOOGLE_CLIENT_ID,
         client_secret=GOOGLE_CLIENT_SECRET,
         scopes=SCOPES,
+        expiry=expiry,
     )
 
 
@@ -110,7 +111,7 @@ def get_valid_credentials(account) -> Credentials:
     """Rebuilds a Credentials object from stored tokens, refreshing if expired.
     Caller is responsible for persisting the refreshed access_token/expiry back to the DB
     (sync_gmail_for_user in gmail_sync.py does this)."""
-    creds = credentials_from_tokens(account.access_token, account.refresh_token)
+    creds = credentials_from_tokens(account.access_token, account.refresh_token, account.token_expiry)
     if creds.expired and creds.refresh_token:
         creds.refresh(GoogleRequest())
     return creds

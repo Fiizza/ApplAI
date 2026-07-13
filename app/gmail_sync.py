@@ -4,6 +4,7 @@ and asks Gemini to summarize it and flag what kind of update it is. Nothing here
 modifies, sends, or deletes anything in the connected inbox.
 """
 import json
+import logging
 from datetime import datetime
 
 from googleapiclient.discovery import build
@@ -11,7 +12,9 @@ from sqlalchemy.orm import Session
 
 import models
 from gmail_auth import get_valid_credentials
-from parser import client as gemini_client, GEMINI_MODEL 
+from parser import client as gemini_client, GEMINI_MODEL
+
+logger = logging.getLogger("gmail_sync")
 
 MAX_MESSAGES_PER_SYNC = 25
 SEARCH_QUERY = (
@@ -117,8 +120,16 @@ def _classify_email(sender: str, subject: str, snippet: str, applications: list[
 
     prompt = MATCH_PROMPT.format(sender=sender, subject=subject, snippet=snippet, applications=app_lines)
     response = gemini_client.models.generate_content(model=GEMINI_MODEL, contents=prompt)
-    result = response.text.strip().replace("```json", "").replace("```", "").strip()
-    return json.loads(result)
+    raw = response.text
+    result = raw.strip().replace("```json", "").replace("```", "").strip()
+    try:
+        return json.loads(result)
+    except json.JSONDecodeError:
+        logger.warning(
+            "gmail_sync: failed to parse Gemini response as JSON for subject=%r. Raw response: %r",
+            subject, raw,
+        )
+        raise
 
 
 def sync_gmail_for_user(db: Session, user: models.User) -> dict:
@@ -148,6 +159,10 @@ def sync_gmail_for_user(db: Session, user: models.User) -> dict:
         userId="me", q=SEARCH_QUERY, maxResults=MAX_MESSAGES_PER_SYNC
     ).execute()
     message_ids = [m["id"] for m in msg_list.get("messages", [])]
+    logger.info(
+        "gmail_sync: user=%s query=%r returned %d message(s) from Gmail; %d already seen in DB",
+        user.id, SEARCH_QUERY, len(message_ids), len(already_seen & set(message_ids)),
+    )
 
     new_summaries = []
     matched = 0
@@ -166,20 +181,30 @@ def sync_gmail_for_user(db: Session, user: models.User) -> dict:
         snippet = full.get("snippet", "")
 
         if _is_automated_job_alert(sender):
+            logger.info("gmail_sync: skipping msg=%s sender=%r — matched automated job-alert sender list", msg_id, sender)
             continue  # known "jobs you might like" digest sender — skip before spending an LLM call on it
 
         try:
             classification = _classify_email(sender, subject, snippet, applications)
         except Exception:
+            logger.exception("gmail_sync: skipping msg=%s subject=%r — classification failed", msg_id, subject)
             continue  # skip anything the model returned unparseable JSON for, rather than crash the whole sync
 
-        if classification.get("detected_signal") in ("not_job_related", "job_alert"):
+        signal = classification.get("detected_signal")
+        if signal in ("not_job_related", "job_alert"):
+            logger.info("gmail_sync: skipping msg=%s subject=%r — detected_signal=%r", msg_id, subject, signal)
             continue  # don't clutter the table with irrelevant mail or automated job recommendations
 
         # Second-pass guard: Gemini sometimes labels a job alert as "other" but still
         # writes "This is a LinkedIn Job Alert..." in the summary. Catch it here.
         if _summary_looks_like_job_alert(classification.get("summary", "")):
+            logger.info("gmail_sync: skipping msg=%s subject=%r — summary matched job-alert keywords despite signal=%r", msg_id, subject, signal)
             continue
+
+        logger.info(
+            "gmail_sync: storing msg=%s subject=%r signal=%r application_id=%s",
+            msg_id, subject, signal, classification.get("application_id"),
+        )
 
         row = models.EmailSummary(
             owner_id=user.id,
@@ -201,6 +226,11 @@ def sync_gmail_for_user(db: Session, user: models.User) -> dict:
     db.commit()
     for row in new_summaries:
         db.refresh(row)
+
+    logger.info(
+        "gmail_sync: finished for user=%s — %d new, %d matched, %d unmatched",
+        user.id, len(new_summaries), matched, unmatched,
+    )
 
     return {
         "new_emails_found": len(new_summaries),

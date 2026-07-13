@@ -79,6 +79,7 @@ class SkillCreate(BaseModel):
 
 
 class SkillUpdate(BaseModel):
+    name: Optional[str] = None
     category: Optional[str] = None
     proficiency: Optional[str] = None
     years_experience: Optional[int] = None

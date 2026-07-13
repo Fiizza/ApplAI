@@ -1,52 +1,50 @@
-# APPLAI: AI Career Copilot
+# APPLAI – AI Career Copilot
 
-AI Career Copilot is an AI-powered job application assistant that helps users manage job applications, tailor resumes, generate cover letters, prepare for interviews, track recruiter emails, and receive intelligent reminders.
-
-## Features
-
-- User Authentication (JWT)
-- Job Application Tracking
-- AI Job Description Parsing
-- Resume Upload (PDF)
-- Resume Tailoring for ATS
-- AI Cover Letter Generation
-- Interview Preparation
-- Skill Gap Analysis
-- Learning Recommendations
-- Gmail Recruiter Email Integration
-- Daily Reminder Digests
-- Application Status Tracking
+APPLAI is an AI-powered career assistant that simplifies the job application process by helping users manage applications, tailor resumes for Applicant Tracking Systems (ATS), generate personalized cover letters, prepare for interviews, analyze skill gaps, and track recruiter communications.
 
 ---
 
-## Tech Stack
+## Overview
 
-### Frontend
-- React (Vite)
-- JavaScript
-- CSS
+APPLAI combines modern web technologies with Large Language Models (LLMs) to provide an intelligent job search experience. The platform automates repetitive tasks and offers AI-driven insights to help users stay organized and improve their chances of landing interviews.
 
-### Backend
-- FastAPI
-- SQLAlchemy
-- SQLite
-- APScheduler
+---
 
-### AI
-- Google Gemini API
+## Key Features
 
-### Authentication
-- JWT
-- Google OAuth (Gmail)
+- User authentication with JWT
+- Job application tracking dashboard
+- AI-powered job description parsing
+- ATS resume tailoring
+- Resume upload (PDF)
+- AI-generated cover letters
+- Interview preparation assistance
+- Skill gap analysis
+- Personalized learning recommendations
+- Gmail recruiter email integration
+- Daily reminder digests
+- Application status tracking
+
+---
+
+## Technology Stack
+
+| Category | Technologies |
+|----------|--------------|
+| Frontend | React (Vite), JavaScript, CSS |
+| Backend | FastAPI, SQLAlchemy, SQLite, APScheduler |
+| AI | Google Gemini API |
+| Authentication | JWT, Google OAuth |
+| Deployment | Docker, Vercel |
 
 ---
 
 ## Project Structure
 
-```
+```text
 .
-├── app/                  # FastAPI Backend
-├── frontend/             # React Frontend
+├── app/                  # FastAPI backend
+├── frontend/             # React frontend
 ├── requirements.txt
 ├── Dockerfile
 ├── README.md
@@ -55,112 +53,41 @@ AI Career Copilot is an AI-powered job application assistant that helps users ma
 
 ---
 
-## Installation
+## Configuration
 
-### Clone Repository
+### Backend Environment Variables
 
-```bash
-git clone https://github.com/YOUR_USERNAME/YOUR_REPOSITORY.git
-cd YOUR_REPOSITORY
+Create a `.env` file and configure the following variables:
+
+```env
+GEMINI_API_KEY=
+
+GOOGLE_CLIENT_ID=
+
+GOOGLE_CLIENT_SECRET=
+
+GOOGLE_REDIRECT_URI=
+
+FRONTEND_URL=
+```
+
+### Frontend Environment Variables
+
+```env
+VITE_API_URL=
 ```
 
 ---
 
-## Backend Setup
+## Running the Application
 
-Create a virtual environment.
+1. Install the backend dependencies from `requirements.txt`.
+2. Install the frontend dependencies using `npm install`.
+3. Configure the required environment variables.
+4. Start the FastAPI backend.
+5. Start the React development server.
 
-```bash
-python -m venv venv
-```
-
-Activate it.
-
-Windows
-
-```bash
-venv\Scripts\activate
-```
-
-Linux/macOS
-
-```bash
-source venv/bin/activate
-```
-
-Install dependencies.
-
-```bash
-pip install -r requirements.txt
-```
-
-Create a `.env` file in the project root.
-
-Example:
-
-```env
-GEMINI_API_KEY=YOUR_API_KEY
-
-GOOGLE_CLIENT_ID=YOUR_CLIENT_ID
-
-GOOGLE_CLIENT_SECRET=YOUR_CLIENT_SECRET
-
-GOOGLE_REDIRECT_URI=http://localhost:8000/auth/gmail/callback
-
-FRONTEND_URL=http://localhost:5173
-```
-
-Run the backend.
-
-```bash
-uvicorn app.main:app --reload
-```
-
-Backend:
-
-```
-http://localhost:8000
-```
-
-Swagger Documentation:
-
-```
-http://localhost:8000/docs
-```
-
----
-
-## Frontend Setup
-
-Navigate to the frontend folder.
-
-```bash
-cd frontend
-```
-
-Install packages.
-
-```bash
-npm install
-```
-
-Create a `.env` file.
-
-```env
-VITE_API_URL=http://localhost:8000
-```
-
-Run the frontend.
-
-```bash
-npm run dev
-```
-
-Frontend:
-
-```
-http://localhost:5173
-```
+The backend exposes interactive API documentation through Swagger UI.
 
 ---
 
@@ -168,52 +95,41 @@ http://localhost:5173
 
 ### Frontend
 
-Deploy on **Vercel**.
-
-Environment Variable:
-
-```
-VITE_API_URL=https://YOUR_BACKEND_URL
-```
-
----
+Deploy the React application to **Vercel** and configure the backend API URL through the `VITE_API_URL` environment variable.
 
 ### Backend
 
-Deploy on **Hugging Face Spaces (Docker SDK)**.
-
-Required Environment Variables:
-
-```
-GEMINI_API_KEY
-
-GOOGLE_CLIENT_ID
-
-GOOGLE_CLIENT_SECRET
-
-GOOGLE_REDIRECT_URI
-
-FRONTEND_URL
-```
-
-The backend runs using:
-
-```bash
-uvicorn app.main:app --host 0.0.0.0 --port 7860
-```
+The backend is Dockerized and can be deployed to any platform that supports Docker containers. Configure the required environment variables before deployment.
 
 ---
 
-## API Documentation
+## Future Improvements
 
-After deployment:
-
-```
-https://YOUR_SPACE_NAME.hf.space/docs
-```
+- Multiple resume management
+- AI mock interviews
+- Job recommendation engine
+- Calendar integration
+- Application analytics
+- Notification center
 
 ---
 
 ## License
 
 This project is intended for educational and portfolio purposes.
+
+---
+
+## Author
+
+**Fizza Akram**
+
+
+**Interests**
+
+- Generative AI
+- Large Language Models (LLMs)
+- Retrieval-Augmented Generation (RAG)
+- Agentic AI Workflows
+- FastAPI
+- React
