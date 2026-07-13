@@ -214,6 +214,36 @@ export default function ApplAI() {
     }
   };
 
+  const handleEditApp = async (id, formData) => {
+    try {
+      const payload = {
+        company: formData.company,
+        role: formData.role,
+        job_url: formData.job_url || null,
+        key_skills: formData.key_skills ? formData.key_skills.split(',').map(s => s.trim()).filter(Boolean) : [],
+        recruiter_name: formData.recruiter_name || null,
+        recruiter_email: formData.recruiter_email || null,
+        oa_deadline: formData.oa_deadline ? new Date(formData.oa_deadline).toISOString() : null,
+        interview_date: formData.interview_date ? new Date(formData.interview_date).toISOString() : null,
+      };
+      const updated = await apiFetch(`/applications/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+      setApps(apps.map(a => (a.id === id ? updated : a)));
+      showToast('Application updated', 'success');
+    } catch (e) {
+      showToast('Failed to update application: ' + e.message, 'error');
+    }
+  };
+
+  const handleDeleteApp = async (id) => {
+    try {
+      await apiFetch(`/applications/${id}`, { method: 'DELETE' });
+      setApps(apps.filter((a) => a.id !== id));
+      showToast('Application deleted', 'default');
+    } catch (e) {
+      showToast('Failed to delete application: ' + e.message, 'error');
+    }
+  };
+
   const handleAddSkill = async (name, category, proficiency, years) => {
     try {
       const skill = await apiFetch('/skills', {
@@ -420,6 +450,8 @@ export default function ApplAI() {
               apps={apps}
               onAddApp={handleAddApp}
               onStatusChange={handleUpdateStatus}
+              onEditApp={handleEditApp}
+              onDeleteApp={handleDeleteApp}
               onOpenModal={(app) => { setModal('details'); setModalData(app); }}
             />
           )}
@@ -667,7 +699,7 @@ const AuthScreen = ({ onRegister, onLogin, loading }) => {
   );
 };
 
-const ApplicationsView = ({ apps, onAddApp, onStatusChange, onOpenModal }) => {
+const ApplicationsView = ({ apps, onAddApp, onStatusChange, onEditApp, onDeleteApp, onOpenModal }) => {
   const [showForm, setShowForm] = useState(false);
   const [formClosing, setFormClosing] = useState(false);
   const [showMore, setShowMore] = useState(false);
@@ -676,10 +708,34 @@ const ApplicationsView = ({ apps, onAddApp, onStatusChange, onOpenModal }) => {
     recruiter_name: '', recruiter_email: '', oa_deadline: '', interview_date: '',
   };
   const [formData, setFormData] = useState(emptyForm);
+  const [editingApp, setEditingApp] = useState(null);
   const [poppedId, setPoppedId] = useState(null);
   const [bumpedStatus, setBumpedStatus] = useState(null);
 
-  const openForm = () => setShowForm(true);
+  const toDatetimeLocal = (iso) => {
+    if (!iso) return '';
+    const d = new Date(iso);
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+
+  const openForm = () => { setEditingApp(null); setFormData(emptyForm); setShowForm(true); };
+
+  const openEditForm = (app) => {
+    setEditingApp(app);
+    setFormData({
+      company: app.company || '',
+      role: app.role || '',
+      job_url: app.job_url || '',
+      key_skills: Array.isArray(app.key_skills) ? app.key_skills.join(', ') : (app.key_skills || ''),
+      recruiter_name: app.recruiter_name || '',
+      recruiter_email: app.recruiter_email || '',
+      oa_deadline: toDatetimeLocal(app.oa_deadline),
+      interview_date: toDatetimeLocal(app.interview_date),
+    });
+    setShowMore(Boolean(app.recruiter_name || app.recruiter_email || app.oa_deadline || app.interview_date));
+    setShowForm(true);
+  };
 
   const closeForm = () => {
     setFormClosing(true);
@@ -688,6 +744,7 @@ const ApplicationsView = ({ apps, onAddApp, onStatusChange, onOpenModal }) => {
       setFormClosing(false);
       setShowMore(false);
       setFormData(emptyForm);
+      setEditingApp(null);
     }, 190);
   };
 
@@ -700,9 +757,19 @@ const ApplicationsView = ({ apps, onAddApp, onStatusChange, onOpenModal }) => {
   }, [showForm]);
 
   const handleAdd = () => {
-    if (formData.company && formData.role) {
+    if (!formData.company || !formData.role) return;
+    if (editingApp) {
+      onEditApp(editingApp.id, formData);
+    } else {
       onAddApp(formData);
-      closeForm();
+    }
+    closeForm();
+  };
+
+  const handleDelete = (e, app) => {
+    e.stopPropagation();
+    if (window.confirm(`Delete the application for ${app.role} at ${app.company}? This can't be undone.`)) {
+      onDeleteApp(app.id);
     }
   };
 
@@ -751,8 +818,8 @@ const ApplicationsView = ({ apps, onAddApp, onStatusChange, onOpenModal }) => {
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-head">
               <div>
-                <h2>Add application</h2>
-                <p className="role">Track a new job — everything but company and role is optional.</p>
+                <h2>{editingApp ? 'Edit application' : 'Add application'}</h2>
+                <p className="role">{editingApp ? 'Update the details for this application.' : 'Track a new job — everything but company and role is optional.'}</p>
               </div>
               <button onClick={closeForm} className="close-x" aria-label="Close">×</button>
             </div>
@@ -846,7 +913,9 @@ const ApplicationsView = ({ apps, onAddApp, onStatusChange, onOpenModal }) => {
               )}
 
               <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-                <button onClick={handleAdd} disabled={!formData.company || !formData.role} className="btn btn-primary">Save</button>
+                <button onClick={handleAdd} disabled={!formData.company || !formData.role} className="btn btn-primary">
+                  {editingApp ? 'Save changes' : 'Save'}
+                </button>
                 <button onClick={closeForm} className="btn btn-ghost">Cancel</button>
               </div>
             </div>
@@ -886,6 +955,26 @@ const ApplicationsView = ({ apps, onAddApp, onStatusChange, onOpenModal }) => {
                           {app.interview_date && <span className="pill">Interview {new Date(app.interview_date).toLocaleDateString()}</span>}
                         </div>
                       )}
+                      <div className="card-actions">
+                        <button
+                          className="x"
+                          title="Edit application"
+                          aria-label={`Edit ${app.company} — ${app.role}`}
+                          onClick={(e) => { e.stopPropagation(); openEditForm(app); }}
+                          type="button"
+                        >
+                          ✎ Edit
+                        </button>
+                        <button
+                          className="x"
+                          title="Delete application"
+                          aria-label={`Delete ${app.company} — ${app.role}`}
+                          onClick={(e) => handleDelete(e, app)}
+                          type="button"
+                        >
+                          × Delete
+                        </button>
+                      </div>
                       <select
                         className="status-select"
                         value={status}

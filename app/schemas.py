@@ -61,6 +61,13 @@ class ApplicationCreate(BaseModel):
 
 
 class ApplicationUpdate(BaseModel):
+    company: Optional[str] = None
+    role: Optional[str] = None
+    job_url: Optional[str] = None
+    key_skills: Optional[List[str]] = None
+    location: Optional[str] = None
+    employment_type: Optional[str] = None
+    seniority: Optional[str] = None
     status: Optional[str] = None
     notes: Optional[str] = None
     recruiter_name: Optional[str] = None

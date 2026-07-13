@@ -551,6 +551,20 @@ button { font-family: inherit; cursor: pointer; }
 .pill.warn { color: var(--stage-interview); border-color: rgba(232,176,75,0.3); }
 
 .card-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.card-actions .x {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1;
+  padding: 4px 8px;
+  cursor: pointer;
+  border-radius: 6px;
+  font-family: var(--font-body);
+  transition: color .15s, border-color .15s, background .15s;
+}
+.card-actions .x:hover { color: var(--text); border-color: var(--border-strong); background: rgba(255,255,255,0.06); }
+.card-actions .x:last-child:hover { color: var(--stage-rejected); border-color: rgba(232,90,90,0.35); }
 .card select.status-select {
   margin-top: 10px;
   width: 100%;

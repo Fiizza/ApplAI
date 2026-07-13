@@ -304,6 +304,20 @@ def update_application(
     current_user: models.User = Depends(auth.get_current_user),
 ):
     row = _get_application_or_404(app_id, db, current_user.id)
+    if payload.company is not None:
+        row.company = payload.company
+    if payload.role is not None:
+        row.role = payload.role
+    if payload.job_url is not None:
+        row.job_url = payload.job_url
+    if payload.key_skills is not None:
+        row.key_skills = json.dumps(payload.key_skills)
+    if payload.location is not None:
+        row.location = payload.location
+    if payload.employment_type is not None:
+        row.employment_type = payload.employment_type
+    if payload.seniority is not None:
+        row.seniority = payload.seniority
     if payload.status is not None:
         row.status = payload.status
         row.last_status_update = datetime.utcnow()
