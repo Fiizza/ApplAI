@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import Splash3D from './components/Splash3D.jsx';
 
-const API = 'http://localhost:8000';
+const API = import.meta.env.VITE_API_URL;
 
 const STATUS_COLOR = {
   Applied: 'var(--stage-applied)',
@@ -1415,4 +1415,5 @@ const DetailModal = ({ app, closing, onClose, onGenerateCoverLetter, onGenerateI
     </div>
   );
 };
+
 
