@@ -1,14 +1,14 @@
-# APPLAI – AI Career Copilot
+# APPLAI: AI Career Copilot
 
 APPLAI is an AI-powered career assistant that simplifies the job application process by helping users manage applications, tailor resumes for Applicant Tracking Systems (ATS), generate personalized cover letters, prepare for interviews, analyze skill gaps, and track recruiter communications.
 
----
+
 
 ## Overview
 
 APPLAI combines modern web technologies with Large Language Models (LLMs) to provide an intelligent job search experience. The platform automates repetitive tasks and offers AI-driven insights to help users stay organized and improve their chances of landing interviews.
 
----
+
 
 ## Key Features
 
@@ -25,7 +25,6 @@ APPLAI combines modern web technologies with Large Language Models (LLMs) to pro
 - Daily reminder digests
 - Application status tracking
 
----
 
 ## Technology Stack
 
@@ -37,7 +36,7 @@ APPLAI combines modern web technologies with Large Language Models (LLMs) to pro
 | Authentication | JWT, Google OAuth |
 | Deployment | Docker, Vercel |
 
----
+
 
 ## Project Structure
 
@@ -51,7 +50,7 @@ APPLAI combines modern web technologies with Large Language Models (LLMs) to pro
 └── .gitignore
 ```
 
----
+
 
 ## Configuration
 
@@ -77,7 +76,7 @@ FRONTEND_URL=
 VITE_API_URL=
 ```
 
----
+
 
 ## Running the Application
 
@@ -89,7 +88,6 @@ VITE_API_URL=
 
 The backend exposes interactive API documentation through Swagger UI.
 
----
 
 ## Deployment
 
@@ -101,7 +99,7 @@ Deploy the React application to **Vercel** and configure the backend API URL thr
 
 The backend is Dockerized and can be deployed to any platform that supports Docker containers. Configure the required environment variables before deployment.
 
----
+
 
 ## Future Improvements
 
@@ -112,13 +110,13 @@ The backend is Dockerized and can be deployed to any platform that supports Dock
 - Application analytics
 - Notification center
 
----
+
 
 ## License
 
 This project is intended for educational and portfolio purposes.
 
----
+
 
 ## Author
 
