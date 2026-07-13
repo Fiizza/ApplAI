@@ -226,6 +226,28 @@ export default function ApplAI() {
     }
   };
 
+  const handleUpdateSkill = async (id, name, category, proficiency, years) => {
+    try {
+      const updated = await apiFetch(`/skills/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ name, category: category || null, proficiency: proficiency || null, years_experience: years ? parseInt(years) : null }),
+      });
+      setSkills(skills.map((s) => (s.id === id ? updated : s)));
+      showToast('Skill updated', 'success');
+    } catch (e) {
+      showToast('Failed to update skill: ' + e.message, 'error');
+    }
+  };
+
+  const handleDeleteSkill = async (id) => {
+    try {
+      await apiFetch(`/skills/${id}`, { method: 'DELETE' });
+      setSkills(skills.filter((s) => s.id !== id));
+    } catch (e) {
+      showToast('Failed to delete skill: ' + e.message, 'error');
+    }
+  };
+
   const handleSaveResume = async (content) => {
     try {
       await apiFetch('/resume', { method: 'POST', body: JSON.stringify({ content }) });
@@ -402,7 +424,12 @@ export default function ApplAI() {
             />
           )}
           {view === 'skills' && (
-            <SkillsView skills={skills} onAddSkill={handleAddSkill} />
+            <SkillsView
+              skills={skills}
+              onAddSkill={handleAddSkill}
+              onUpdateSkill={handleUpdateSkill}
+              onDeleteSkill={handleDeleteSkill}
+            />
           )}
           {view === 'resume' && (
             <ResumeView resume={resume} onSave={handleSaveResume} />
@@ -881,20 +908,42 @@ const ApplicationsView = ({ apps, onAddApp, onStatusChange, onOpenModal }) => {
   );
 };
 
-const SkillsView = ({ skills, onAddSkill }) => {
+const SkillsView = ({ skills, onAddSkill, onUpdateSkill, onDeleteSkill }) => {
   const [name, setName] = useState('');
   const [category, setCategory] = useState('');
   const [proficiency, setProficiency] = useState('Intermediate');
   const [years, setYears] = useState('');
+  const [editingId, setEditingId] = useState(null);
+
+  const resetForm = () => {
+    setName('');
+    setCategory('');
+    setProficiency('Intermediate');
+    setYears('');
+    setEditingId(null);
+  };
 
   const handleAdd = () => {
-    if (name) {
+    if (!name) return;
+    if (editingId != null) {
+      onUpdateSkill(editingId, name, category, proficiency, years);
+    } else {
       onAddSkill(name, category, proficiency, years);
-      setName('');
-      setCategory('');
-      setProficiency('Intermediate');
-      setYears('');
     }
+    resetForm();
+  };
+
+  const startEdit = (skill) => {
+    setEditingId(skill.id);
+    setName(skill.name || '');
+    setCategory(skill.category || '');
+    setProficiency(skill.proficiency || 'Intermediate');
+    setYears(skill.years_experience != null ? String(skill.years_experience) : '');
+  };
+
+  const handleDelete = (id) => {
+    if (editingId === id) resetForm();
+    onDeleteSkill(id);
   };
 
   const categoryCounts = skills.reduce((acc, s) => {
@@ -938,7 +987,12 @@ const SkillsView = ({ skills, onAddSkill }) => {
               <label>Years</label>
               <input placeholder="0" type="number" value={years} onChange={(e) => setYears(e.target.value)} />
             </div>
-            <button onClick={handleAdd} className="btn btn-primary">Add skill</button>
+            <button onClick={handleAdd} className="btn btn-primary">
+              {editingId != null ? 'Save skill' : 'Add skill'}
+            </button>
+            {editingId != null && (
+              <button onClick={resetForm} className="btn btn-ghost" type="button">Cancel</button>
+            )}
           </div>
 
           <div className="skill-list">
@@ -946,11 +1000,33 @@ const SkillsView = ({ skills, onAddSkill }) => {
               <p className="text-muted">No skills added yet.</p>
             ) : (
               skills.map((skill, i) => (
-                <div key={skill.id} className="skill-chip" style={{ '--chip-delay': `${Math.min(i, 14) * 35}ms` }}>
+                <div
+                  key={skill.id}
+                  className={`skill-chip${editingId === skill.id ? ' editing' : ''}`}
+                  style={{ '--chip-delay': `${Math.min(i, 14) * 35}ms` }}
+                >
                   <span>{skill.name}</span>
                   {skill.category && <span className="text-muted">· {skill.category}</span>}
                   {skill.proficiency && <span className="text-muted">· {skill.proficiency}</span>}
-                  {skill.years_experience && <span className="text-muted">· {skill.years_experience}y</span>}
+                  {skill.years_experience != null && <span className="text-muted">· {skill.years_experience}y</span>}
+                  <button
+                    className="x"
+                    title="Edit skill"
+                    aria-label={`Edit ${skill.name}`}
+                    onClick={() => startEdit(skill)}
+                    type="button"
+                  >
+                    ✎
+                  </button>
+                  <button
+                    className="x"
+                    title="Delete skill"
+                    aria-label={`Delete ${skill.name}`}
+                    onClick={() => handleDelete(skill.id)}
+                    type="button"
+                  >
+                    ×
+                  </button>
                 </div>
               ))
             )}
@@ -1111,6 +1187,16 @@ const RemindersView = ({ reminders, loading, onRefresh, onSendDigest, emailAccou
   const stale = reminders?.stale_applications || [];
   const oaDeadlines = reminders?.upcoming_oa_deadlines || [];
   const interviews = reminders?.upcoming_interviews || [];
+  const [syncing, setSyncing] = useState(false);
+
+  const handleSyncClick = async () => {
+    setSyncing(true);
+    try {
+      await onGmailSync();
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   return (
     <div>
@@ -1191,10 +1277,14 @@ const RemindersView = ({ reminders, loading, onRefresh, onSendDigest, emailAccou
                 </span>
               </div>
               <div style={{ display: 'flex', gap: '8px', marginTop: '12px', marginBottom: '14px' }}>
+                <button onClick={handleSyncClick} className="btn btn-sm btn-primary" disabled={syncing}>
+                  {syncing && <span className="spinner" />}
+                  {syncing ? 'Syncing' : 'Sync now'}
+                </button>
                 <button onClick={onGmailDisconnect} className="btn btn-sm btn-ghost">Disconnect</button>
               </div>
               {emailSummaries.length === 0 ? (
-                <p className="text-muted" style={{ fontSize: '13px' }}>No recruiter emails found yet.</p>
+                <p className="text-muted" style={{ fontSize: '13px' }}>No recruiter emails found yet — hit "Sync now" to pull recent recruiter emails from Gmail.</p>
               ) : (
                 <ul className="tips-list">
                   {emailSummaries.slice(0, 4).map((e) => (
@@ -1415,5 +1505,6 @@ const DetailModal = ({ app, closing, onClose, onGenerateCoverLetter, onGenerateI
     </div>
   );
 };
+
 
 
