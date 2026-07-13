@@ -1,21 +1,22 @@
-
+# Python
 venv/
 __pycache__/
 *.py[cod]
-*.pyo
-*.pyd
 
+# Environment
 .env
+.env.*
 
+# Database
 tracker.db
 
-
+# React
 frontend/node_modules/
 frontend/dist/
-frontend/.env
 
-
+# IDE
 .vscode/
+.idea/
 
-
-.DS_Store
+# Git
+.git
