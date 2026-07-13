@@ -45,7 +45,7 @@ client = _LazyClientProxy()
 # Centralized so a future Gemini model deprecation only needs one change, not
 # seven. gemini-2.5-flash was retired ("no longer available to new users") —
 # gemini-3.5-flash is the current stable, GA model as of July 2026.
-GEMINI_MODEL = "gemini-2.5-flash"
+GEMINI_MODEL = "gemini-3.5-flash"
 
 EXTRACTION_PROMPT = """
 You are an expert job parser.
