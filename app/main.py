@@ -1,11 +1,12 @@
 import json
 import os
+import re
 from datetime import datetime, timedelta
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Depends, HTTPException, UploadFile, File
+from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from sqlalchemy import create_engine
@@ -84,6 +85,37 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+_CORS_ORIGIN_REGEX = re.compile(r"http://(localhost|127\.0\.0\.1):\d+|https://applai.*\.vercel\.app")
+_CORS_ALLOWED_ORIGINS = {"http://localhost:3000", "http://localhost:5173", "http://localhost:8080", *_extra_origins}
+
+
+def _cors_headers_for(request: Request) -> dict:
+    origin = request.headers.get("origin")
+    if origin and (origin in _CORS_ALLOWED_ORIGINS or _CORS_ORIGIN_REGEX.fullmatch(origin)):
+        return {"Access-Control-Allow-Origin": origin, "Access-Control-Allow-Credentials": "true", "Vary": "Origin"}
+    return {}
+
+
+# IMPORTANT: a handler registered via @app.exception_handler(Exception) does NOT work
+# for this — Starlette special-cases handlers for the bare Exception class (or 500) and
+# routes them through ServerErrorMiddleware, which sits OUTSIDE every middleware you add,
+# including CORSMiddleware, regardless of add_middleware() order. That means CORS headers
+# never get attached, and any unhandled backend exception (e.g. a Gemini API error) shows
+# up in the browser as an opaque "Failed to fetch" instead of the real error message.
+#
+# The fix: catch the exception ourselves in a real middleware and attach the CORS header
+# directly on the response we build, instead of relying on CORSMiddleware to do it.
+@app.middleware("http")
+async def catch_unhandled_exceptions(request: Request, call_next):
+    try:
+        return await call_next(request)
+    except Exception as exc:
+        return JSONResponse(
+            status_code=500,
+            content={"detail": f"{type(exc).__name__}: {exc}"},
+            headers=_cors_headers_for(request),
+        )
 
 
 def _get_application_or_404(app_id: int, db: Session, owner_id: int) -> models.Application:
