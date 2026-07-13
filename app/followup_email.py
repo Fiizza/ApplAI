@@ -1,4 +1,4 @@
-from .parser import client, GEMINI_MODEL  # reuse the same Gemini client/key already configured
+from parser import client, GEMINI_MODEL  # reuse the same Gemini client/key already configured
 
 FOLLOWUP_PROMPT = """You are helping a job applicant write a short, polite follow-up email.
 

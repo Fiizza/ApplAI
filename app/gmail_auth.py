@@ -24,7 +24,7 @@ from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request as GoogleRequest
 from jose import jwt
 
-from .auth import SECRET_KEY, ALGORITHM  # reuse the same JWT secret already configured
+from auth import SECRET_KEY, ALGORITHM  # reuse the same JWT secret already configured
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")

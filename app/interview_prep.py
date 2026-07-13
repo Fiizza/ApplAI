@@ -1,4 +1,4 @@
-from .parser import client, GEMINI_MODEL  # reuse the same Gemini client/key already configured
+from parser import client, GEMINI_MODEL  # reuse the same Gemini client/key already configured
 
 INTERVIEW_PROMPT = """You are a senior technical recruiter helping a candidate prepare for an interview.
 

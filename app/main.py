@@ -12,12 +12,12 @@ from sqlalchemy import create_engine
 from apscheduler.schedulers.background import BackgroundScheduler
 from googleapiclient.discovery import build as gmail_build
 
-from . import models, schemas, parser, matching, cover_letter, resume_tailor, auth
-from . import interview_prep, followup_email, learning_recommendations, notifications
-from . import gmail_auth, gmail_sync
-from .reminders import compute_reminders, _row_to_out, FOLLOWUP_THRESHOLD_DAYS
-from .database import engine, get_db, Base, SessionLocal
-from .resume_pdf import extract_pdf_text
+import models, schemas, parser, matching, cover_letter, resume_tailor, auth
+import interview_prep, followup_email, learning_recommendations, notifications
+import gmail_auth, gmail_sync
+from reminders import compute_reminders, _row_to_out, FOLLOWUP_THRESHOLD_DAYS
+from database import engine, get_db, Base, SessionLocal
+from resume_pdf import extract_pdf_text
 
 Base.metadata.create_all(bind=engine)
 
@@ -70,9 +70,15 @@ app = FastAPI(title="AI Career Copilot", lifespan=lifespan)
 # allow_origin_regex catches ANY localhost/127.0.0.1 port so you stop getting
 # silent "Failed to fetch" errors every time your dev server picks a new port
 # (Vite does this automatically when 5173 is busy).
+#
+# In production, set FRONTEND_URL in Vercel (e.g. https://applai.vercel.app) so
+# your deployed frontend isn't blocked by CORS. Comma-separate multiple values
+# (e.g. a custom domain + the vercel.app preview URL) if needed.
+_extra_origins = [o.strip() for o in os.getenv("FRONTEND_URL", "").split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173", "http://localhost:8080"],
+    allow_origins=["http://localhost:3000", "http://localhost:5173", "http://localhost:8080", *_extra_origins],
     allow_origin_regex=r"http://(localhost|127\.0\.0\.1):\d+",
     allow_credentials=True,
     allow_methods=["*"],
@@ -104,6 +110,32 @@ def _match_for(row: models.Application, db: Session) -> dict:
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+# --- Serverless-safe cron triggers ---
+# On Vercel, functions are ephemeral: there's no long-running process, so the
+# APScheduler background jobs above (daily_gmail_sync / daily_digest) will NOT
+# reliably fire in production the way they do when you run `uvicorn` locally.
+# These two endpoints let an external scheduler (Vercel Cron Jobs, or a free
+# pinger like cron-job.org) trigger the same logic on a schedule instead.
+# Set CRON_SECRET in Vercel's env vars and pass it as ?secret=... when calling.
+CRON_SECRET = os.getenv("CRON_SECRET", "")
+
+
+@app.post("/cron/gmail-sync")
+def cron_gmail_sync(secret: str = ""):
+    if not CRON_SECRET or secret != CRON_SECRET:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    _run_daily_gmail_sync()
+    return {"status": "triggered"}
+
+
+@app.post("/cron/daily-digest")
+def cron_daily_digest(secret: str = ""):
+    if not CRON_SECRET or secret != CRON_SECRET:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    _run_daily_digest()
+    return {"status": "triggered"}
 
 
 ### --- Auth --- ###
@@ -680,7 +712,7 @@ def purge_job_alert_summaries(
     """One-time cleanup: deletes any job-alert / recommendation emails that slipped
     through the sync filter before the sender blocklist and summary-keyword guard were added.
     Safe to call repeatedly — it only removes rows whose summary contains job-alert language."""
-    from .gmail_sync import JOB_ALERT_SUMMARY_KEYWORDS
+    from gmail_sync import JOB_ALERT_SUMMARY_KEYWORDS
     rows = (
         db.query(models.EmailSummary)
         .filter(models.EmailSummary.owner_id == current_user.id)

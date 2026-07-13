@@ -31,7 +31,7 @@ def _get_client():
 
 
 class _LazyClientProxy:
-    """Lets other modules keep doing `from .parser import client` and
+    """Lets other modules keep doing `from parser import client` and
     `client.models.generate_content(...)` unchanged, but defers the real
     genai.Client() construction (and the credential check) until first use."""
 

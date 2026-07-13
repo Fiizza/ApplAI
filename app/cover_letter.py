@@ -1,4 +1,4 @@
-from .parser import client, GEMINI_MODEL  # reuse the same Gemini client/key already configured
+from parser import client, GEMINI_MODEL  # reuse the same Gemini client/key already configured
 
 OPENER_PROMPT = """You are helping a job applicant write the opening 2-3 sentences of a cover letter.
 Write in first person, confident but not arrogant, no generic filler like "I am excited to apply."

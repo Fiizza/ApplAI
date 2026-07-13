@@ -7,7 +7,7 @@ import json
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 
-from . import models
+import models
 
 FOLLOWUP_THRESHOLD_DAYS = 7  # flag "Applied" jobs with no update after this many days
 

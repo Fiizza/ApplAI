@@ -1,4 +1,4 @@
-from .parser import client, GEMINI_MODEL  # reuse the same Gemini client/key already configured
+from parser import client, GEMINI_MODEL  # reuse the same Gemini client/key already configured
 
 RECOMMENDATION_PROMPT = """A job candidate is missing the following skills for a "{role}" role: {missing_skills}
 

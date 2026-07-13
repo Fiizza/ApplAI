@@ -1,4 +1,4 @@
-from .parser import client, GEMINI_MODEL  # reuse the same Gemini client already configured
+from parser import client, GEMINI_MODEL  # reuse the same Gemini client already configured
 
 TAILOR_PROMPT = """You are an ATS (Applicant Tracking System) resume optimization expert.
 

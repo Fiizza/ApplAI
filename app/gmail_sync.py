@@ -9,9 +9,9 @@ from datetime import datetime
 from googleapiclient.discovery import build
 from sqlalchemy.orm import Session
 
-from . import models
-from .gmail_auth import get_valid_credentials
-from .parser import client as gemini_client, GEMINI_MODEL 
+import models
+from gmail_auth import get_valid_credentials
+from parser import client as gemini_client, GEMINI_MODEL 
 
 MAX_MESSAGES_PER_SYNC = 25
 SEARCH_QUERY = (

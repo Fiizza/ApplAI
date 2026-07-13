@@ -8,8 +8,8 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
-from . import models
-from .database import get_db
+import models
+from database import get_db
 
 # In production set JWT_SECRET_KEY in your .env — this fallback is dev-only.
 SECRET_KEY = os.getenv("JWT_SECRET_KEY", "dev-only-change-me")

@@ -24,8 +24,8 @@ from email.mime.text import MIMEText
 
 from sqlalchemy.orm import Session
 
-from . import models
-from .reminders import compute_reminders
+import models
+from reminders import compute_reminders
 
 SMTP_HOST = os.getenv("SMTP_HOST")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
